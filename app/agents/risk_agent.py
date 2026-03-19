@@ -167,7 +167,7 @@ class RiskAgent:
 
         flags = consistency.get("flags", [])
 
-        # FACTORS
+        # FACTORS (for explainability)
         factors = {
             "credit_score": score,
             "fraud_risk": fraud,
@@ -219,7 +219,7 @@ class RiskAgent:
             }
 
         # -------------------
-        # STRONG APPROVE (MOVED UP)
+        # STRONG APPROVE
         # -------------------
         if (
             score > 720 and
@@ -236,7 +236,7 @@ class RiskAgent:
             }
 
         # -------------------
-        # MEDIUM RISK → REJECT (APP002 FIX)
+        # MEDIUM RISK → REJECT
         # -------------------
         if score < 650 and ratio and ratio > 8:
             rules.append("weak_profile")
@@ -247,7 +247,7 @@ class RiskAgent:
             }
 
         # -------------------
-        # CONSISTENCY (SOFT FIRST)
+        # CONSISTENCY (SOFT + HARD SPLIT)
         # -------------------
         if "salary_vs_application_mismatch" in flags:
             if diff_ratio and diff_ratio > 0.5:
@@ -294,19 +294,60 @@ class RiskAgent:
             }
 
         # -------------------
-        # FINAL FALLBACK (REDUCED MANUAL)
+        # WEIGHTED SCORING (FINAL LAYER)
         # -------------------
-        if score and score > 680:
-            rules.append("fallback_approve")
+        score_weight = 0
+
+        if score:
+            if score > 750:
+                score_weight += 3
+            elif score > 700:
+                score_weight += 2
+            elif score > 650:
+                score_weight += 1
+
+        if fraud == "low":
+            score_weight += 2
+
+        if not delinquency:
+            score_weight += 1
+
+        if ratio and ratio < 6:
+            score_weight += 2
+        elif ratio and ratio > 10:
+            score_weight -= 2
+
+        if income_strength == "high":
+            score_weight += 2
+        elif income_strength == "medium":
+            score_weight += 1
+
+        if "salary_vs_application_mismatch" in flags:
+            score_weight -= 1
+
+        if "cashflow_instability" in flags:
+            score_weight -= 1
+
+        # -------------------
+        # FINAL DECISION
+        # -------------------
+        if score_weight >= 6:
             return "APPROVE", {
                 "factors": factors,
-                "rules_triggered": rules,
-                "summary": "Acceptable profile with no strong negatives"
+                "rules_triggered": ["score_based_approve"],
+                "summary": "Approved based on composite scoring"
             }
 
-        return "REJECT", {
+        elif score_weight <= 2:
+            return "REJECT", {
+                "factors": factors,
+                "rules_triggered": ["score_based_reject"],
+                "summary": "Rejected based on composite scoring"
+            }
+
+        return "MANUAL_REVIEW", {
             "factors": factors,
-            "rules_triggered": ["fallback_reject"],
-            "summary": "Insufficient strength for approval"
+            "rules_triggered": ["score_based_manual"],
+            "summary": "Borderline score"
         }
         
