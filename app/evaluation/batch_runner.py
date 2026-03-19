@@ -31,12 +31,6 @@ class BatchEvaluator:
             state = self.supervisor.run(app)
             expected = self.gt.get(app["application_id"], {}).get("decision")
             
-            print("\n============================")
-            print("APP ID:", app["application_id"])
-            print("EXPECTED:", expected)
-            print("ACTUAL:", state.decision)
-            print("============================\n")
-
             results.append({
                 "app_id": state.application_id,
                 "predicted": state.decision,
