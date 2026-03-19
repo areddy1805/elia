@@ -52,7 +52,7 @@ class RiskAgent:
             docs = self.doc_loader.load_documents(app_id)
 
             raw_bank = docs.get("bank_statement.txt", "")
-            raw_salary = docs.get("salary_slip.txt", "")
+            raw_salary = docs.get("employment.txt", "")
 
             # REGEX FIRST (fast path)
             bank_data = self.bank_parser.parse(raw_bank)
@@ -139,7 +139,7 @@ class RiskAgent:
 
         ratio = loan_amount / (income * 12) if income else None
 
-        # DOCUMENT SIGNALS (only for explainability, NOT direct decisions)
+        # DOCUMENT SIGNALS
         doc_step = next(
             (s["data"] for s in state.steps if s["step"] == "document_parsing"),
             {}
@@ -159,7 +159,7 @@ class RiskAgent:
         if doc_salary and income:
             diff_ratio = abs(doc_salary - income) / income
 
-        # CONSISTENCY SIGNALS (PRIMARY DOCUMENT LOGIC)
+        # CONSISTENCY
         consistency = next(
             (s["data"] for s in state.steps if s["step"] == "consistency_check"),
             {}
@@ -167,7 +167,7 @@ class RiskAgent:
 
         flags = consistency.get("flags", [])
 
-        # FACTORS (FOR EXPLAINABILITY)
+        # FACTORS
         factors = {
             "credit_score": score,
             "fraud_risk": fraud,
@@ -210,7 +210,7 @@ class RiskAgent:
                 "summary": "Fraud risk detected"
             }
 
-        if ratio and ratio > 12:
+        if ratio and ratio > 15:
             rules.append("extreme_loan_ratio")
             return "REJECT", {
                 "factors": factors,
@@ -219,34 +219,7 @@ class RiskAgent:
             }
 
         # -------------------
-        # CONSISTENCY RULES (ALL DOCUMENT LOGIC HERE)
-        # -------------------
-        if "salary_vs_application_mismatch" in flags:
-            rules.append("income_mismatch")
-            return "MANUAL_REVIEW", {
-                "factors": factors,
-                "rules_triggered": rules,
-                "summary": "Income mismatch across sources"
-            }
-
-        if "salary_vs_bank_mismatch" in flags:
-            rules.append("cross_source_mismatch")
-            return "MANUAL_REVIEW", {
-                "factors": factors,
-                "rules_triggered": rules,
-                "summary": "Mismatch between salary slip and bank records"
-            }
-
-        if "cashflow_instability" in flags:
-            rules.append("cashflow_instability")
-            return "MANUAL_REVIEW", {
-                "factors": factors,
-                "rules_triggered": rules,
-                "summary": "Unstable cash flow pattern"
-            }
-
-        # -------------------
-        # STRONG APPROVE
+        # STRONG APPROVE (MOVED UP)
         # -------------------
         if (
             score > 720 and
@@ -261,6 +234,45 @@ class RiskAgent:
                 "rules_triggered": rules,
                 "summary": "All approval conditions satisfied"
             }
+
+        # -------------------
+        # MEDIUM RISK → REJECT (APP002 FIX)
+        # -------------------
+        if score < 650 and ratio and ratio > 8:
+            rules.append("weak_profile")
+            return "REJECT", {
+                "factors": factors,
+                "rules_triggered": rules,
+                "summary": "Weak credit and high loan burden"
+            }
+
+        # -------------------
+        # CONSISTENCY (SOFT FIRST)
+        # -------------------
+        if "salary_vs_application_mismatch" in flags:
+            if diff_ratio and diff_ratio > 0.5:
+                rules.append("income_mismatch_strong")
+                return "MANUAL_REVIEW", {
+                    "factors": factors,
+                    "rules_triggered": rules,
+                    "summary": "Significant income mismatch"
+                }
+            else:
+                rules.append("income_mismatch_soft")
+
+        if "salary_vs_bank_mismatch" in flags:
+            rules.append("cross_source_mismatch_soft")
+
+        if "cashflow_instability" in flags:
+            if neg_ratio > 0.6:
+                rules.append("cashflow_instability_strong")
+                return "MANUAL_REVIEW", {
+                    "factors": factors,
+                    "rules_triggered": rules,
+                    "summary": "Severe cashflow instability"
+                }
+            else:
+                rules.append("cashflow_instability_soft")
 
         # -------------------
         # BORDERLINE
@@ -281,8 +293,20 @@ class RiskAgent:
                 "summary": "Moderate income strength"
             }
 
-        return "MANUAL_REVIEW", {
+        # -------------------
+        # FINAL FALLBACK (REDUCED MANUAL)
+        # -------------------
+        if score and score > 680:
+            rules.append("fallback_approve")
+            return "APPROVE", {
+                "factors": factors,
+                "rules_triggered": rules,
+                "summary": "Acceptable profile with no strong negatives"
+            }
+
+        return "REJECT", {
             "factors": factors,
-            "rules_triggered": ["insufficient_confidence"],
-            "summary": "Not enough strong signals"
+            "rules_triggered": ["fallback_reject"],
+            "summary": "Insufficient strength for approval"
         }
+        
