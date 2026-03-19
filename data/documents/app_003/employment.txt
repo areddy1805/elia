@@ -1,0 +1,7 @@
+Employee Name: Gupta Neha
+Company: Wipro Technologies
+
+Status: Confirmed
+
+Monthly CTC: 1.14L (approx)
+Joining Year: 2016

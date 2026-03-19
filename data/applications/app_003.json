@@ -1,0 +1,24 @@
+{
+  "application_id": "APP003",
+  "applicant": {
+    "name": "Neha Gupta",
+    "age": 35,
+    "pan": "YZ234AB56",
+    "aadhaar": "XXXX-XXXX-3456"
+  },
+  "employment": {
+    "type": "salaried",
+    "employer": "Wipro",
+    "monthly_income": 95000,
+    "years_experience": 10
+  },
+  "loan": {
+    "amount": 1200000,
+    "tenure_months": 60,
+    "purpose": "education"
+  },
+  "metadata": {
+    "submitted_at": "2026-03-12",
+    "channel": "branch"
+  }
+}

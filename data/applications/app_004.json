@@ -1,0 +1,24 @@
+{
+  "application_id": "APP004",
+  "applicant": {
+    "name": "Rahul Singh",
+    "age": 41,
+    "pan": "CD789EF01",
+    "aadhaar": "XXXX-XXXX-7890"
+  },
+  "employment": {
+    "type": "salaried",
+    "employer": "HCL",
+    "monthly_income": 55000,
+    "years_experience": 15
+  },
+  "loan": {
+    "amount": 300000,
+    "tenure_months": 36,
+    "purpose": "medical"
+  },
+  "metadata": {
+    "submitted_at": "2026-03-15",
+    "channel": "online"
+  }
+}

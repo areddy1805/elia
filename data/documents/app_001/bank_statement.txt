@@ -1,0 +1,10 @@
+Account Holder: Priya S.
+Bank: SBI
+
+Jan Closing Balance: 65,000
+Feb Closing Balance: 28,000
+Mar Closing Balance: 72,000
+
+EMI: 12,000 (car loan)
+
+Note: Salary credited on 1st, consistent

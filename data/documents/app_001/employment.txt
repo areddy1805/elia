@@ -1,0 +1,7 @@
+Employee Name: Priya Sharma
+Company: Infosys Limited
+
+Status: Active
+
+Monthly Salary: 82k (approx)
+Joining Year: 2019

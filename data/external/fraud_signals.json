@@ -1,0 +1,27 @@
+{
+  "APP001": {
+    "name_mismatch": false,
+    "document_tampering": false,
+    "ip_risk": "low"
+  },
+  "APP002": {
+    "name_mismatch": true,
+    "document_tampering": false,
+    "ip_risk": "medium"
+  },
+  "APP003": {
+    "name_mismatch": false,
+    "document_tampering": false,
+    "ip_risk": "low"
+  },
+  "APP004": {
+    "name_mismatch": true,
+    "document_tampering": true,
+    "ip_risk": "high"
+  },
+  "APP005": {
+    "name_mismatch": false,
+    "document_tampering": false,
+    "ip_risk": "low"
+  }
+}

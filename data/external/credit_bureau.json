@@ -1,0 +1,27 @@
+{
+  "APP001": {
+    "cibil_score": 760,
+    "active_loans": 1,
+    "delinquencies": 0
+  },
+  "APP002": {
+    "cibil_score": 620,
+    "active_loans": 3,
+    "delinquencies": 2
+  },
+  "APP003": {
+    "cibil_score": 810,
+    "active_loans": 2,
+    "delinquencies": 0
+  },
+  "APP004": {
+    "cibil_score": 680,
+    "active_loans": 4,
+    "delinquencies": 1
+  },
+  "APP005": {
+    "cibil_score": 710,
+    "active_loans": 0,
+    "delinquencies": 0
+  }
+}

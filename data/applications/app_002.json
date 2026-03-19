@@ -1,0 +1,24 @@
+{
+  "application_id": "APP002",
+  "applicant": {
+    "name": "Amit Patel",
+    "age": 28,
+    "pan": "UV678WXY90",
+    "aadhaar": "XXXX-XXXX-9012"
+  },
+  "employment": {
+    "type": "self_employed",
+    "employer": "Patel Traders",
+    "monthly_income": 60000,
+    "years_experience": 5
+  },
+  "loan": {
+    "amount": 400000,
+    "tenure_months": 24,
+    "purpose": "business"
+  },
+  "metadata": {
+    "submitted_at": "2026-03-10",
+    "channel": "online"
+  }
+}

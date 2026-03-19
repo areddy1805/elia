@@ -1,0 +1,22 @@
+{
+  "APP001": {
+    "decision": "APPROVE",
+    "reason": "Strong credit, consistent income signals, no fraud"
+  },
+  "APP002": {
+    "decision": "REJECT",
+    "reason": "Poor credit, overdrafts, name mismatch, fraud signals"
+  },
+  "APP003": {
+    "decision": "APPROVE",
+    "reason": "Excellent credit, stable high income across docs"
+  },
+  "APP004": {
+    "decision": "MANUAL_REVIEW",
+    "reason": "Multiple loans, irregular bank activity, tampering signals despite long experience"
+  },
+  "APP005": {
+    "decision": "MANUAL_REVIEW",
+    "reason": "Good credit but variable self-employed income, unclear bank patterns"
+  }
+}

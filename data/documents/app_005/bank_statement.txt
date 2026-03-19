@@ -1,0 +1,10 @@
+Account Holder: S. Reddy
+Bank: Kotak
+
+Jan Closing Balance: 45,000
+Feb Closing Balance: 52,000
+Mar Closing Balance: 38,000
+
+No existing EMIs
+
+Note: Multiple small credits, no clear salary pattern

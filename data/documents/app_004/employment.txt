@@ -1,0 +1,7 @@
+Employee Name: R. Singh
+Company: HCL Technologies
+
+Status: Active
+
+Monthly Salary: 52k (approx)
+Joining Year: 2011

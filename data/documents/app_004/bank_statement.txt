@@ -1,0 +1,10 @@
+Account Holder: Rahul S.
+Bank: HDFC
+
+Jan Closing Balance: 5,000
+Feb Closing Balance: -1,200
+Mar Closing Balance: 3,500
+
+EMI: 18,000 (2 existing loans)
+
+Note: Irregular credits (35k-55k), frequent withdrawals

@@ -1,0 +1,24 @@
+{
+  "application_id": "APP005",
+  "applicant": {
+    "name": "Sneha Reddy",
+    "age": 27,
+    "pan": "GH012IJ34",
+    "aadhaar": "XXXX-XXXX-2345"
+  },
+  "employment": {
+    "type": "self_employed",
+    "employer": "Reddy Designs",
+    "monthly_income": 70000,
+    "years_experience": 3
+  },
+  "loan": {
+    "amount": 500000,
+    "tenure_months": 30,
+    "purpose": "personal"
+  },
+  "metadata": {
+    "submitted_at": "2026-03-18",
+    "channel": "mobile_app"
+  }
+}

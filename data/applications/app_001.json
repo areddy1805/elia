@@ -1,0 +1,24 @@
+{
+  "application_id": "APP001",
+  "applicant": {
+    "name": "Priya Sharma",
+    "age": 32,
+    "pan": "PQ123RST45",
+    "aadhaar": "XXXX-XXXX-5678"
+  },
+  "employment": {
+    "type": "salaried",
+    "employer": "Infosys",
+    "monthly_income": 85000,
+    "years_experience": 7
+  },
+  "loan": {
+    "amount": 800000,
+    "tenure_months": 48,
+    "purpose": "home_renovation"
+  },
+  "metadata": {
+    "submitted_at": "2026-03-05",
+    "channel": "mobile_app"
+  }
+}

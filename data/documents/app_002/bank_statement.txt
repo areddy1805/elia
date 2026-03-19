@@ -1,0 +1,9 @@
+Account Holder: A. Patel
+Bank: ICICI
+
+Jan Closing Balance: 15,000
+Feb Closing Balance: -2,500
+Mar Closing Balance: 8,000
+
+EMI: 8,000 (personal loan)
+No regular credits observed
