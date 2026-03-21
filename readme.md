@@ -180,7 +180,7 @@ Fraud Tool
 
 Located in:
 
-data/documents/{APP_ID}/
+data/documents/{application_id}/
 
 Types:
 • bank_statement.txt
@@ -349,7 +349,7 @@ Implemented
 
 1. Document Caching
 
-self.doc_cache[app_id]
+self.doc_cache[application_id]
 
 Avoids repeated parsing.
 

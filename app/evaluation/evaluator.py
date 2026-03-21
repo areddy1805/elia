@@ -9,9 +9,9 @@ class Evaluator:
 
     def evaluate(self, state):
 
-        app_id = state.application_id
+        application_id = state.application_id
 
-        expected = self.gt.get(app_id, {}).get("decision")
+        expected = self.gt.get(application_id, {}).get("decision")
 
         if not expected:
             state.set_evaluation(False, "UNKNOWN_GT")

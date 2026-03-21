@@ -32,7 +32,7 @@ class BatchEvaluator:
             expected = self.gt.get(app["application_id"], {}).get("decision")
             
             results.append({
-                "app_id": state.application_id,
+                "application_id": state.application_id,
                 "predicted": state.decision,
                 "expected": self.gt.get(state.application_id, {}).get("decision"),
                 "confidence": state.confidence

@@ -1,5 +1,6 @@
 import json
 import ollama
+import concurrent.futures
 
 from app.tools.credit_tool import CreditBureauTool
 from app.tools.fraud_tool import FraudDetectionTool
@@ -10,6 +11,8 @@ from app.documents.parsers.bank_parser import BankStatementParser
 from app.documents.parsers.salary_parser import SalarySlipParser
 from app.documents.llm_parser import LLMDocumentParser
 from app.documents.consistency_checker import ConsistencyChecker
+from app.cache.analysis_cache import AnalysisCache
+
 
 
 class RiskAgent:
@@ -29,16 +32,22 @@ class RiskAgent:
 
         # CACHE (critical for performance)
         self.doc_cache = {}
+        self.analysis_cache = AnalysisCache()
 
     def process(self, state):
 
-        app_id = state.application_id
+        application_id = state.application_id
 
         # -------------------
         # TOOL DATA
         # -------------------
-        credit_data = self.credit_tool.get_credit_score(app_id)
-        fraud_data = self.fraud_tool.check_fraud(app_id)
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            credit_future = executor.submit(self.credit_tool.get_credit_score, application_id)
+            fraud_future = executor.submit(self.fraud_tool.check_fraud, application_id)
+
+            credit_data = credit_future.result()
+            fraud_data = fraud_future.result()
 
         state.set_credit_data(credit_data)
         state.set_fraud_data(fraud_data)
@@ -46,10 +55,10 @@ class RiskAgent:
         # -------------------
         # DOCUMENT PARSING (CACHED + HYBRID)
         # -------------------
-        if app_id in self.doc_cache:
-            bank_data, salary_data = self.doc_cache[app_id]
+        if application_id in self.doc_cache:
+            bank_data, salary_data = self.doc_cache[application_id]
         else:
-            docs = self.doc_loader.load_documents(app_id)
+            docs = self.doc_loader.load_documents(application_id)
 
             raw_bank = docs.get("bank_statement.txt", "")
             raw_salary = docs.get("employment.txt", "")
@@ -72,7 +81,7 @@ class RiskAgent:
                     salary_data.update({k: v for k, v in llm_salary.items() if v is not None})
 
             # Cache result
-            self.doc_cache[app_id] = (bank_data, salary_data)
+            self.doc_cache[application_id] = (bank_data, salary_data)
 
         state.add_step("document_parsing", {
             "bank": bank_data,
@@ -93,7 +102,19 @@ class RiskAgent:
         # -------------------
         # LLM ANALYSIS (CORE)
         # -------------------
-        analysis = self.run_analysis(state.application, credit_data, fraud_data)
+        
+        # FAST PATH (no LLM)
+        if credit_data.get("cibil_score", 0) > 750 and fraud_data.get("ip_risk") == "low":
+            analysis = {
+                "credit_score": credit_data["cibil_score"],
+                "has_delinquency": False,
+                "fraud_risk": "low",
+                "document_issue": False,
+                "income_strength": "high"
+            }
+        else:
+            analysis = self.run_analysis(state.application, credit_data, fraud_data)
+
         state.set_analysis(analysis)
 
         # -------------------
@@ -106,19 +127,58 @@ class RiskAgent:
 
     def run_analysis(self, application, credit_data, fraud_data):
 
+        import concurrent.futures
+
+        # -------------------
+        # CACHE
+        # -------------------
+        cached = self.analysis_cache.get(application, credit_data, fraud_data)
+        if cached:
+            return cached
+
+        # -------------------
+        # PROMPT
+        # -------------------
         prompt = build_analysis_prompt(
             json.dumps(application, indent=2),
             json.dumps(credit_data, indent=2),
             json.dumps(fraud_data, indent=2)
         )
 
-        response = ollama.chat(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        # -------------------
+        # SAFE LLM CALL
+        # -------------------
+        def safe_llm_call():
+            return ollama.chat(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}]
+            )
 
-        return json.loads(response["message"]["content"])
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(safe_llm_call)
+                response = future.result(timeout=3)
 
+            result = json.loads(response["message"]["content"])
+
+        except Exception:
+            # -------------------
+            # FALLBACK (CRITICAL)
+            # -------------------
+            result = {
+                "credit_score": credit_data.get("cibil_score"),
+                "has_delinquency": credit_data.get("delinquencies", 0) > 0,
+                "fraud_risk": fraud_data.get("ip_risk", "medium"),
+                "document_issue": False,
+                "income_strength": "medium"
+            }
+
+        # -------------------
+        # CACHE STORE
+        # -------------------
+        self.analysis_cache.set(application, credit_data, fraud_data, result)
+
+        return result
     # -----------------------
     # FINAL DECISION ENGINE
     # -----------------------

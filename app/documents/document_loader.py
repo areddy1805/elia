@@ -6,17 +6,17 @@ class DocumentLoader:
     def __init__(self, base_path="data/documents"):
         self.base_path = base_path
 
-    def normalize_app_id(self, app_id: str):
+    def normalize_application_id(self, application_id: str):
         """
         Convert:
         APP001 → app_001
         """
-        num = app_id.replace("APP", "")
+        num = application_id.replace("APP", "")
         return f"app_{num}"
 
-    def load_documents(self, app_id):
+    def load_documents(self, application_id):
 
-        folder_name = self.normalize_app_id(app_id)
+        folder_name = self.normalize_application_id(application_id)
         app_path = os.path.join(self.base_path, folder_name)
 
         docs = {}
