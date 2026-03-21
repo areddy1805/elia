@@ -13,42 +13,50 @@
 
 Overview
 
-This system simulates a real-world loan underwriting engine used in BFSI environments. It combines:
-• Deterministic business rules
-• LLM-assisted analysis
-• Document parsing
+ELIA is a production-style loan underwriting system that simulates real BFSI decision pipelines using:
+• Deterministic risk policies
+• LLM-assisted feature extraction
+• Document intelligence
 • Multi-agent orchestration
-• Evaluation + explainability
+• Async execution + evaluation framework
 
-The system processes loan applications end-to-end and produces:
+⸻
+
+Output Contract
 
 {
 "decision": "APPROVE | REJECT | MANUAL_REVIEW",
-"reason": { ...structured explanation... },
-"confidence": 0.0–1.0,
-"steps": [audit trail]
+"reason": {
+"factors": {},
+"rules_triggered": [],
+"summary": ""
+},
+"confidence": 0.0,
+"latency_sec": 0.0,
+"steps": []
 }
 
 ⸻
 
 1. System Architecture
 
-High-Level Flow
+End-to-End Flow
 
 Application Input
 ↓
-[Supervisor]
+Supervisor
 ↓
-[Intake Agent] → Validation
+Intake Agent
 ↓
-[Risk Agent]
-├─ External Tools (Credit, Fraud)
-├─ Document Parsing (Regex + LLM)
-├─ Consistency Checker
-├─ LLM Analysis
-└─ Decision Engine
+Risk Agent
+├── Credit Tool
+├── Fraud Tool
+├── Document Pipeline
+├── Consistency Engine
+├── LLM Analysis
+└── Decision Engine
 ↓
-[Compliance Agent]
+Compliance Agent
 ↓
 Confidence + Evaluation
 ↓
@@ -87,17 +95,22 @@ elia/
 │ ├── prompts/
 │ │ └── prompt_analysis.py
 │ │
-│ └── evaluation/
-│ ├── evaluator.py
-│ └── batch_runner.py
+│ ├── evaluation/
+│ │ ├── evaluator.py
+│ │ └── batch_runner.py
+│ │
+│ └── queue/ # async processing (Celery)
 │
 ├── data/
 │ ├── applications/
 │ ├── documents/
 │ ├── external/
+│ │ ├── credit_bureau.json
+│ │ └── fraud_signals.json
 │ └── ground_truth.json
 │
 ├── scripts/
+│ ├── generate_dataset.py
 │ ├── run_single.py
 │ └── run_batch.py
 │
@@ -108,333 +121,371 @@ elia/
 
 3. Core Components
 
-3.1 Supervisor (Orchestrator)
+3.1 Supervisor (Workflow Engine)
 
-Controls full pipeline.
+Controls execution pipeline.
 
 Responsibilities:
-• Execution flow control
-• Retry handling
-• Early exits
+• Agent orchestration
+• Retry logic
+• Failure isolation
 • Confidence scoring
-
-Supervisor = Workflow Engine
 
 ⸻
 
 3.2 Agents
 
 Intake Agent
-• Validates input structure
-• Ensures required fields
+• Validates schema
+• Rejects malformed inputs
+
+⸻
 
 Risk Agent (Core Engine)
 
-Handles:
+Responsible for:
 • Tool integration
 • Document parsing
-• LLM reasoning
-• Decision logic
-
-This is the brain of the system.
+• Consistency validation
+• LLM-based analysis
+• Deterministic decision
 
 ⸻
 
 Compliance Agent
-• Applies policy overrides
-• Final gate before output
+• Policy enforcement
+• Override layer
+• Final validation
 
 ⸻
 
 4. Data Sources
 
-4.1 Application Data
+4.1 Application
 
-{
-"applicant": {...},
-"employment": {...},
-"loan": {...}
-}
+application.json
+
+Structured input (employment, loan, applicant).
 
 ⸻
 
-4.2 External Tools
+4.2 External Signals
 
-Credit Tool
+Credit Bureau
 
-{
-"cibil_score": 760,
-"active_loans": 1
-}
+data/external/credit_bureau.json
 
-Fraud Tool
+cibil_score
+active_loans
+delinquencies
 
-{
-"fraud_risk": "low",
-"document_tampering": false
-}
+⸻
+
+Fraud Signals
+
+data/external/fraud_signals.json
+
+name_mismatch
+document_tampering
+ip_risk
 
 ⸻
 
 4.3 Documents
 
-Located in:
+data/documents/{APP_ID}/
 
-data/documents/{application_id}/
-
-Types:
-• bank_statement.txt
-• employment.txt
+    •	bank_statement.txt
+    •	employment.txt
 
 ⸻
 
-5. Document Processing Pipeline
+5. Document Intelligence Pipeline
 
-Step 1 — Load
+Stage 1 — Load
 
-DocumentLoader → raw text
-
-⸻
-
-Step 2 — Regex Parsing (Fast Path)
-
-BankStatementParser
-SalarySlipParser
+Raw text ingestion
 
 ⸻
 
-Step 3 — LLM Parsing (Fallback)
+Stage 2 — Regex Parsing (Primary)
+• Bank parser
+• Salary parser
 
-Triggered only if:
-
-missing / incomplete fields
-
-⸻
-
-Step 4 — Merge Strategy
-
-Regex result = base
-LLM result = override (only if non-null)
+Fast, deterministic extraction
 
 ⸻
 
-Step 5 — Consistency Check
+Stage 3 — LLM Fallback
 
-Produces flags:
+Triggered only when:
+• missing values
+• low confidence extraction
 
-salary_vs_application_mismatch
-salary_vs_bank_mismatch
-cashflow_instability
+⸻
+
+Stage 4 — Merge Strategy
+
+regex → base
+llm → override (non-null only)
+
+⸻
+
+Stage 5 — Consistency Engine
+
+Generates flags:
+• salary_vs_application_mismatch
+• salary_vs_bank_mismatch
+• cashflow_instability
 
 ⸻
 
 6. Decision Engine
 
-Multi-Layer Logic
+Strict layered logic.
+
+⸻
 
 Layer 1 — Hard Reject
-
-- score < 600
-- fraud detected
-- extreme loan ratio
+• credit score < 600
+• fraud signals
+• extreme loan ratio
 
 ⸻
 
 Layer 2 — Strong Approve
-
-- score > 720
-- low fraud
-- high income strength
-- low ratio
-
-⸻
-
-Layer 3 — Medium Risk Reject
-
-- low score + high burden
+• score > 720
+• low fraud
+• no delinquencies
+• ratio < 6
 
 ⸻
 
-Layer 4 — Consistency Logic
-
-soft → penalize
-strong → manual review
-
-⸻
-
-Layer 5 — Borderline Rules
-
-- moderate income
-- high ratio
+Layer 3 — Consistency Rules
+• cross-source mismatch → manual
+• instability → manual
 
 ⸻
 
-Layer 6 — Weighted Scoring (Final)
-
-score_weight = aggregated signal score
-
-Decision:
-
-> = 6 → APPROVE
-> <= 2 → REJECT
-> else → MANUAL
+Layer 4 — Borderline Handling
+• moderate income
+• high ratio
 
 ⸻
 
-7. Explainability
+Layer 5 — Final Decision
 
-Each decision includes:
+APPROVE / REJECT / MANUAL_REVIEW
 
-{
-"factors": {...},
-"rules_triggered": [...],
-"summary": "reason"
-}
+No LLM used here.
 
 ⸻
 
-Example
+7. Explainability (XAI)
 
-{
-"rules_triggered": ["strong_profile"],
-"summary": "All approval conditions satisfied"
-}
+Every decision includes:
+
+factors
+rules_triggered
+summary
+
+Full traceability.
 
 ⸻
 
 8. State Management
 
-All data flows through:
+Central object:
 
 LoanApplicationState
 
 Tracks:
 • application
 • tool outputs
-• parsed docs
+• document outputs
 • analysis
 • decision
-• steps (audit trail)
+• audit steps
 
 ⸻
 
-9. Evaluation System
+9. Evaluation Framework
 
-Batch Evaluation
+Batch Execution
 
 python scripts/run_batch.py
 
-Metrics:
+⸻
 
-Accuracy
-False Approvals (critical)
-False Rejections
-Manual Reviews
-Missed Decisions
+Metrics
+• Accuracy
+• False Approvals (critical)
+• False Rejections
+• Manual Reviews
+• Missed Decisions
 
 ⸻
 
-Example Output
+Example
 
-Total: 5
-Accuracy: 0.8
+Total: 40
+Accuracy: 0.82
 False Approvals: 0
-Manual Reviews: 0
+Manual Reviews: 6
 
 ⸻
 
-10. Performance Optimizations
+10. Dataset System
 
-Implemented
+Synthetic dataset generator:
 
-1. Document Caching
+python scripts/generate_dataset.py
 
-self.doc_cache[application_id]
+⸻
+
+Coverage
+• Strong profiles
+• Reject cases
+• Borderline cases
+• Edge fraud cases
+
+⸻
+
+Guarantees
+• Consistent schema
+• Tool-compatible format
+• Document variability
+• Controlled distribution
+
+⸻
+
+11. Performance Optimizations
+
+1. Document Cache
+
+doc_cache[app_id]
 
 Avoids repeated parsing.
 
 ⸻
 
-2. LLM Fallback Only
+2. Selective LLM Usage
 
-LLM used only when regex fails
+LLM only used when required.
 
 ⸻
 
 3. Deterministic Decision Layer
 
-No LLM in final decision
+Zero LLM in final decision.
 
 ⸻
 
-11. Key Design Decisions
+4. Async Processing (Celery)
+   • Background execution
+   • Task polling API
+   • Latency isolation
 
-1. Hybrid System
+⸻
 
-LLM = feature extraction
-Rules = decision
+12. API Layer (FastAPI)
+
+Endpoints
+
+Submit (Async)
+
+POST /evaluate-loan-async
+
+⸻
+
+Fetch Result
+
+GET /result/{task_id}
+
+⸻
+
+Decision Logs
+
+GET /decisions
+
+⸻
+
+13. Failure Handling
+    • Retry in supervisor
+    • Timeout protection (LLM)
+    • Null-safe data normalization
+    • Batch-level fault tolerance
+
+⸻
+
+14. Key Design Principles
+
+1. Hybrid Intelligence
+
+LLM → feature extraction
+Rules → decision
 
 ⸻
 
 2. Explainability First
 
-Every decision is traceable.
+No black-box decisions.
 
 ⸻
 
-3. Conservative Bias
+3. Conservative Risk Bias
 
-Avoid false approvals > maximize accuracy
+Minimize false approvals.
 
 ⸻
 
 4. Separation of Concerns
 
-Agents / Tools / Documents / Decision isolated
+Agents / Tools / Docs / Decision isolated.
 
 ⸻
 
-12. Known Limitations
+5. Production Simulation
 
-1. Small dataset
-1. Limited document formats
-1. No real-time external APIs
-1. No historical credit depth
-
-⸻
-
-13. Future Improvements
-
-1. Add liabilities + EMI aggregation
-1. Add bureau history (multi-loan trends)
-1. Add vector DB for document retrieval
-1. Replace rules with ML model (optional)
-1. Add API layer (FastAPI)
-1. Add async processing
-1. Add logging + monitoring
+Includes:
+• async execution
+• evaluation
+• structured logging
 
 ⸻
 
-14. System Classification
+15. Known Limitations
+    • Synthetic dataset
+    • Limited document diversity
+    • No real bureau APIs
+    • No temporal credit history
+
+⸻
+
+16. Next Evolution
+    • Replace rules → ML scoring layer
+    • Add liabilities + EMI aggregation
+    • Add vector DB (RAG for docs)
+    • Add monitoring + tracing
+    • Scale dataset (1000+)
+
+⸻
+
+17. System Classification
 
 Type: Applied AI System
-Category: Decision Intelligence / BFSI
-Level: Production-style simulation
+Category: Decision Intelligence (BFSI)
+Level: Production-Grade Simulation
 
 ⸻
 
-15. Final Summary
+Final State
 
-This system replicates:
-
-Real-world loan underwriting pipeline with:
+Not a demo.
+A complete underwriting system simulation with:
 
 - multi-agent orchestration
-- hybrid AI + rules
 - document intelligence
 - explainable decisions
-- evaluation framework
-
-It is not a demo.
-
-It is a simplified production architecture.
+- async execution
+- evaluation pipeline
