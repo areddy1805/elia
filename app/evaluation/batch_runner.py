@@ -1,12 +1,7 @@
 import os
 import json
-from collections import Counter
-
+import time
 from app.supervisor.supervisor import LoanSupervisor
-
-
-DATA_PATH = "data/applications"
-GT_PATH = "data/ground_truth.json"
 
 
 class BatchEvaluator:
@@ -14,75 +9,78 @@ class BatchEvaluator:
     def __init__(self):
         self.supervisor = LoanSupervisor()
 
-        with open(GT_PATH) as f:
-            self.gt = json.load(f)
+        self.data_path = "data/applications"
+        self.gt_path = "data/ground_truth.json"
+
+        with open(self.gt_path) as f:
+            self.ground_truth = json.load(f)
 
     def run(self):
 
-        results = []
+        total = 0
+        correct = 0
+        manual = 0
+        missed = 0
 
-        for file in os.listdir(DATA_PATH):
-            if not file.endswith(".json"):
+        latencies = []
+
+        for app_id in sorted(os.listdir(self.data_path)):
+
+            app_file = f"{self.data_path}/{app_id}/application.json"
+
+            if not os.path.exists(app_file):
                 continue
 
-            with open(os.path.join(DATA_PATH, file)) as f:
-                app = json.load(f)
+            with open(app_file) as f:
+                application = json.load(f)
 
-            state = self.supervisor.run(app)
-            expected = self.gt.get(app["application_id"], {}).get("decision")
-            
-            results.append({
-                "application_id": state.application_id,
-                "predicted": state.decision,
-                "expected": self.gt.get(state.application_id, {}).get("decision"),
-                "confidence": state.confidence
-            })
+            # -------------------
+            # LATENCY START
+            # -------------------
+            start = time.time()
 
-        self.compute_metrics(results)
+            state = self.supervisor.run(application)
 
-    # ------------------------
-    # METRICS
-    # ------------------------
+            latency = time.time() - start
+            latencies.append(latency)
 
-    def compute_metrics(self, results):
+            # -------------------
+            # RESULTS
+            # -------------------
+            actual = state.decision
+            expected = self.ground_truth[app_id]["decision"]
 
-        total = len(results)
+            total += 1
 
-        correct = 0
-        false_approve = 0
-        false_reject = 0
-        manual_review = 0
-        missed_decisions = 0  # NEW
-
-        for r in results:
-
-            pred = r["predicted"]
-            exp = r["expected"]
-
-            if pred == exp:
+            if actual == expected:
                 correct += 1
+            elif actual == "MANUAL_REVIEW":
+                manual += 1
+                missed += 1
+            else:
+                missed += 1
 
-            elif pred == "APPROVE" and exp == "REJECT":
-                false_approve += 1
+            print("\n============================")
+            print(f"APP ID: {app_id}")
+            print(f"EXPECTED: {expected}")
+            print(f"ACTUAL: {actual}")
+            print(f"LATENCY: {round(latency, 3)} sec")
+            print("============================\n")
 
-            elif pred == "REJECT" and exp == "APPROVE":
-                false_reject += 1
-
-            elif pred == "MANUAL_REVIEW":
-                manual_review += 1
-                if exp in ["APPROVE", "REJECT"]:
-                    missed_decisions += 1
+        # -------------------
+        # AGGREGATE LATENCY
+        # -------------------
+        avg_latency = sum(latencies) / len(latencies)
+        max_latency = max(latencies)
+        min_latency = min(latencies)
 
         print("\n===== METRICS =====\n")
-
         print(f"Total: {total}")
-        print(f"Accuracy: {round(correct/total, 2)}")
+        print(f"Accuracy: {round(correct / total, 2)}")
+        print(f"Manual Reviews: {manual}")
+        print(f"Missed Decisions: {missed}")
 
-        print(f"False Approvals (CRITICAL): {false_approve}")
-        print(f"False Rejections: {false_reject}")
-
-        print(f"Manual Reviews: {manual_review}")
-        print(f"Missed Decisions: {missed_decisions}")
-
-if __name__ == "__main__":
-    BatchEvaluator().run()
+        print("\n===== LATENCY =====\n")
+        print(f"Avg Latency: {round(avg_latency, 3)} sec")
+        print(f"Max Latency: {round(max_latency, 3)} sec")
+        print(f"Min Latency: {round(min_latency, 3)} sec")
