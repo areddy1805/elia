@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: elia-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - PYTHONPATH=/app
+
+  worker:
+    build: .
+    container_name: elia-worker
+    command: celery -A app.queue.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+    environment:
+      - PYTHONPATH=/app
+
+  redis:
+    image: redis:7
+    container_name: elia-redis
+    ports:
+      - "6379:6379"
