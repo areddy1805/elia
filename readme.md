@@ -40,32 +40,82 @@ Output Contract
 
 1. System Architecture
 
-End-to-End Flow
+```text
+                         ┌──────────────────────────────┐
+                         │      Client / API Layer      │
+                         │  (FastAPI / Async Endpoint)  │
+                         └──────────────┬───────────────┘
+                                        │
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │        Task Queue Layer       │
+                         │        (Celery + Redis)       │
+                         └──────────────┬───────────────┘
+                                        │
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │          Supervisor           │
+                         │     (Workflow Orchestrator)   │
+                         └──────────────┬───────────────┘
+                                        │
+         ┌──────────────────────────────┼──────────────────────────────┐
+         ▼                              ▼                              ▼
+┌────────────────────┐        ┌────────────────────┐        ┌────────────────────┐
+│   Intake Agent     │        │    Risk Agent      │        │ Compliance Agent   │
+│ (Validation Layer) │        │   (Core Engine)    │        │  (Policy Layer)    │
+└─────────┬──────────┘        └─────────┬──────────┘        └─────────┬──────────┘
+          │                             │                             │
+          ▼                             ▼                             ▼
 
-Application Input
-↓
-Supervisor
-↓
-Intake Agent
-↓
-Risk Agent
-├── Credit Tool
-├── Fraud Tool
-├── Document Pipeline
-├── Consistency Engine
-├── LLM Analysis
-└── Decision Engine
-↓
-Compliance Agent
-↓
-Confidence + Evaluation
-↓
-Final Decision + Audit Trail
+                ┌────────────────────────────────────────────────────┐
+                │                Risk Agent Internals                │
+                ├────────────────────────────────────────────────────┤
+                │                                                    │
+                │ 1. External Tools                                  │
+                │    ├── Credit Bureau Tool                          │
+                │    └── Fraud Detection Tool                        │
+                │                                                    │
+                │ 2. Document Pipeline                               │
+                │    ├── Document Loader                             │
+                │    ├── Regex Parsers                               │
+                │    │     ├── Bank Parser                           │
+                │    │     └── Salary Parser                         │
+                │    ├── LLM Parser (Fallback)                       │
+                │    └── Merge Layer                                 │
+                │                                                    │
+                │ 3. Consistency Engine                              │
+                │    └── Cross-source validation                     │
+                │                                                    │
+                │ 4. LLM Analysis                                    │
+                │    └── Structured signal extraction                │
+                │                                                    │
+                │ 5. Decision Engine                                 │
+                │    ├── Hard Rules                                  │
+                │    ├── Consistency Rules                           │
+                │    ├── Risk Thresholds                             │
+                │    └── Final Decision                              │
+                │                                                    │
+                └────────────────────────────────────────────────────┘
+
+                                        │
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │     State + Audit Trail       │
+                         │   (LoanApplicationState)      │
+                         └──────────────┬───────────────┘
+                                        │
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │      Evaluation Engine        │
+                         │ (Metrics + Ground Truth)      │
+                         └──────────────────────────────┘
+```
 
 ⸻
 
 2. Project Structure
 
+```text
 elia/
 │
 ├── app/
@@ -116,6 +166,7 @@ elia/
 │
 ├── requirements.txt
 └── README.md
+```
 
 ⸻
 
@@ -489,3 +540,7 @@ A complete underwriting system simulation with:
 - explainable decisions
 - async execution
 - evaluation pipeline
+
+```
+
+```
